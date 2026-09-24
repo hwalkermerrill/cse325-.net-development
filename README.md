@@ -1,2 +1,6 @@
 # cse325-.net-development
-Project space and main repository for .net software development class
+
+.net Software Development
+
+Harrison Merrill
+BYU-Idaho - 24 Sep 2026 - Prof Robert Kumar
