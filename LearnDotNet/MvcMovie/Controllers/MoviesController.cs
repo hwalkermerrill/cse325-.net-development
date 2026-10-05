@@ -20,9 +20,42 @@ namespace MvcMovie.Controllers
 		}
 
 		// GET: Movies
-		public async Task<IActionResult> Index()
+		public async Task<IActionResult> Index(string movieGenre, string searchString, int? year)
 		{
-			return View(await _context.Movie.ToListAsync());
+			if (_context.Movie == null)
+			{
+				return Problem("Entity set 'MvcMovieContext.Movie'  is null.");
+			}
+
+			// Use LINQ to get list of genres.
+			IQueryable<string> genreQuery = from m in _context.Movie
+																			orderby m.Genre
+																			select m.Genre;
+			var movies = from m in _context.Movie
+									 select m;
+
+			if (!string.IsNullOrEmpty(searchString))
+			{
+				movies = movies.Where(s => s.Title!.ToUpper().Contains(searchString.ToUpper()));
+			}
+
+			if (!string.IsNullOrEmpty(movieGenre))
+			{
+				movies = movies.Where(x => x.Genre == movieGenre);
+			}
+
+			if (year.HasValue)
+			{
+				movies = movies.Where(m => m.ReleaseDate.Year >= year.Value);
+			}
+
+			var movieGenreVM = new MovieGenreViewModel
+			{
+				Genres = new SelectList(await genreQuery.Distinct().ToListAsync()),
+				Movies = await movies.ToListAsync()
+			};
+
+			return View(movieGenreVM);
 		}
 
 		// GET: Movies/Details/5
@@ -49,12 +82,19 @@ namespace MvcMovie.Controllers
 			return View();
 		}
 
+		//POST: Search Movies
+		[HttpPost]
+		public string Index(string searchString, bool notUsed)
+		{
+			return "From [HttpPost]Index: filter on " + searchString;
+		}
+
 		// POST: Movies/Create
 		// To protect from overposting attacks, enable the specific properties you want to bind to.
 		// For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
 		[HttpPost]
 		[ValidateAntiForgeryToken]
-		public async Task<IActionResult> Create([Bind("Id,Title,ReleaseDate,Genre,Price")] Movie movie)
+		public async Task<IActionResult> Create([Bind("Id,Title,ReleaseDate,Genre,Price,Rating")] Movie movie)
 		{
 			if (ModelState.IsValid)
 			{
@@ -148,6 +188,26 @@ namespace MvcMovie.Controllers
 			await _context.SaveChangesAsync();
 			return RedirectToAction(nameof(Index));
 		}
+
+		// // POST: Movies/Delete/6
+		// [HttpPost]
+		// [ValidateAntiForgeryToken]
+		// public async Task<IActionResult> Delete(int id, bool notUsed)
+		// {
+		// 	if (id == null)
+		// 	{
+		// 		return NotFound();
+		// 	}
+
+		// 	var movie = await _context.Movie
+		// 			.FirstOrDefaultAsync(m => m.Id == id);
+		// 	if (movie == null)
+		// 	{
+		// 		return NotFound();
+		// 	}
+
+		// 	return View(movie);
+		// }
 
 		private bool MovieExists(int id)
 		{
